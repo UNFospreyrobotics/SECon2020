@@ -43,10 +43,10 @@ while True:
 	cv.line(frame, (right_bar,0), (right_bar,640), (0, 255, 0), 3) #right test line
 	
 	
-	lower_red = np.array([l_h, l_s, l_v])
-	upper_red = np.array([u_h, u_s, u_v])
+	lower_color = np.array([l_h, l_s, l_v])
+	upper_color = np.array([u_h, u_s, u_v])
 
-	mask = cv.inRange(hsv, lower_red, upper_red)
+	mask = cv.inRange(hsv, lower_color, upper_color)
 	kernel = np.ones((5, 5), np.uint8)
 	mask = cv.erode(mask, kernel)
 	
