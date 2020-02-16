@@ -3,7 +3,7 @@
 
 int S1 = 5; //pin 5 connected to ST pin S1 as analog input 0-5V
 int S2 = 6; //pin 6  ""              "" S2 ""               ""
-
+char pyByte = ' '; //initializing char for serial comm
 
 void robotForward()
 {
@@ -38,20 +38,49 @@ void robotStop()
 
 void setup() 
 {
+  Serial.begin(9600);
   pinMode(S1, OUTPUT);
   pinMode(S2, OUTPUT);
+  //Serial.println("Motor Arduino UNO active");
 
 }
 
 void loop() 
 {
-  robotStop();
-  delay(500);
-  robotCW();
-  delay(1000);
-  robotStop();
-  delay(1500);
-  robot(ACW);
-  delay(500);
-
+//  robotStop();
+//  delay(500);
+//  robotCW();
+//  delay(1000);
+//  robotStop();
+//  delay(1500);
+//  robot(ACW);
+//  delay(500);
+  if(Serial.available())
+  {
+    pyByte = Serial.read(); //read command byte sent from Python program
+  }
+  
+  switch (pyByte) //execute motor control command based on read pyByte char
+  {
+    case 'S': 
+      robotStop();
+      break;
+    case 'F': 
+      robotForward();
+      break;
+    case 'R': 
+      robotReverse();
+      break;
+    case 'C': 
+      robotCW();
+      break;
+    case 'A': 
+      robotACW();
+      break;
+    default: //precaution: stops robot if no assigned command is received
+      robotStop();
+      break;
+  }
+  delay(50); //may not be needed
+  
 }

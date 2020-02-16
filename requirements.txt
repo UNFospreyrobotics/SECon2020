@@ -1,5 +1,0 @@
-dependencies:
-
--numpy
--cv2
--imutils (pip install imutils)

@@ -1,9 +1,18 @@
-#date: 2020-01-31
+#date start: 2020-01-31
+#TODO: seperate serial processes into different files, make things gooder-er
 import numpy as np
 import cv2 as cv
+import serial
+
 
 def nothing(x):
 	pass
+
+#serial portion start
+ser = serial.Serial('COM3')#USB port my arduino on windows is using, may need to change for diff computers
+ser.baudrate = 9600
+#end serial initilization 
+
 
 cap = cv.VideoCapture(0)
 
@@ -14,6 +23,13 @@ cap.set(4, 640) #height
 #pixel value x-intercept of vertical boundary lines to use for brick distance matching
 left_bar = 160
 right_bar = 480
+
+#initial values for left_edge, right_edge to make robot do a certain command by default, and command flags
+left_edge = -1
+right_edge = -1
+left_aligned = False
+right_aligned = False
+motorCommand = '0'
 
 cv.namedWindow("Trackbars")
 cv.createTrackbar("L-H", "Trackbars", 27, 180, nothing)
@@ -72,12 +88,27 @@ while True:
 	#these next if statements will compare the detected rectangle edges against the static bars
 	if (0.9*left_bar) < left_edge < (1.1*left_bar):
 		cv.putText(frame, "LEFT ALIGNED", (320,320), font, 1, (0, 0, 0))
+		left_aligned = True
+	else:
+		left_aligned = False
 		
 	if (0.9*right_bar) < right_edge < (1.1*right_bar):
 		cv.putText(frame, "RIGHT ALIGNED", (320, 420), font, 1, (0, 0, 0))
+		right_aligned = True
+	else:
+		right_aligned = False
+		
+	#next if statements should be refined later, to be used for sending serial commands based on alignment
+	if (right_aligned and left_aligned) == 1: #stop motor when both sides aligned
+		motorCommand = 'S'
+	
+	elif (not right_aligned and not left_aligned) == 1: #spin robot clockwise if no sides aligned
+		motorCommand = 'C'
+	#end serial command if statements
+	ser.write(motorCommand.encode('ascii'))
 	
 	cv.imshow("Frame", frame)#both of these display capture windows
-	cv.imshow("Mask", mask)# ""
+	cv.imshow("Mask", mask)
 
 	key = cv.waitKey(1)
 	if key == 27: #hit ESC KEY to terminate
