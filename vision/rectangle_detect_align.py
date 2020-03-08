@@ -9,16 +9,45 @@ def nothing(x):
 	pass
 
 #serial portion start
-ser = serial.Serial('COM3')#USB port my arduino on windows is using, may need to change for diff computers
+#ser = serial.Serial('COM3')#USB port my arduino on windows is using, may need to change for diff computers
+ser = serial.Serial('/dev/ttyACM0') #jetson nano arduino port
 ser.baudrate = 9600
-#end serial initilization 
+#end serial initilization code
 
+def gstreamer_pipeline(
+    capture_width=640,#3280,
+    capture_height=640,#2464,
+    display_width=820,
+    display_height=616,
+    framerate=21,
+    flip_method=0,
+):
+    return (
+        "nvarguscamerasrc ! "
+        "video/x-raw(memory:NVMM), "
+        "width=(int)%d, height=(int)%d, "
+        "format=(string)NV12, framerate=(fraction)%d/1 ! "
+        "nvvidconv flip-method=%d ! "
+        "video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! "
+        "videoconvert ! "
+        "video/x-raw, format=(string)BGR ! appsink"
+        % (
+            capture_width,
+            capture_height,
+            framerate,
+            flip_method,
+            display_width,
+            display_height,
+        )
+    )
 
-cap = cv.VideoCapture(0)
+#cap = cv.VideoCapture('/dev/video0')#,cv.CAP_V4L2)
+cap = cv.VideoCapture(gstreamer_pipeline(), cv.CAP_GSTREAMER)
+
 
 #camera resolution settings
-cap.set(3, 640) #width
-cap.set(4, 640) #height
+#cap.set(3, 640) #width
+#cap.set(4, 640) #height
 
 #pixel value x-intercept of vertical boundary lines to use for brick distance matching
 left_bar = 160
@@ -30,6 +59,9 @@ right_edge = -1
 left_aligned = False
 right_aligned = False
 motorCommand = '0'
+#TASK VARIABLE, used for telling robot what to do
+task = 'start'
+
 
 cv.namedWindow("Trackbars")
 cv.createTrackbar("L-H", "Trackbars", 27, 180, nothing)
@@ -44,15 +76,42 @@ font = cv.FONT_HERSHEY_COMPLEX
 while True:
 	_, frame = cap.read()
 	hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-#note: Blue sticky note pad in my room falls in HSV range of
-#    lower HSV: (27, 21, 94)
-#    upper HSV: (131, 196, 213)
+
 	l_h = cv.getTrackbarPos("L-H", "Trackbars")
 	l_s = cv.getTrackbarPos("L-S", "Trackbars")
 	l_v = cv.getTrackbarPos("L-V", "Trackbars")
 	u_h = cv.getTrackbarPos("U-H", "Trackbars")
 	u_s = cv.getTrackbarPos("U-S", "Trackbars")
 	u_v = cv.getTrackbarPos("U-V", "Trackbars")
+#black lego HSV range
+#	lower HSV: (0,0,0)
+#	upper HSV: (180,255,44)
+#brown lego HSV range
+#	lower HSV: 
+#red lego HSV range
+#	lower HSV: (0,119,49)
+#	upper HSV: (180,25,87)
+#orange lego hsv range
+#	lower HSV: (0,108,91)
+#	upper HSV: (19,255,255)
+#yellow lego hsv range
+#	lower HSV: (14,57,80)
+#       upper HSV: (76,255,255)
+#green lego hsv range
+#	lower HSV: (26,59,20)
+#	upper HSV: (103,255,255)
+#blue lego HSV range
+#	lower HSV: (92,101,7)
+#	upper HSV: (118,255,255)
+#indigo lego HSV range
+#	lower HSV: (
+#	upper HSV: (
+#grey (baby blue actually) lego HSV range
+#	lower HSV: (0,26,75)
+#	upper HSV: (144,94,134)
+#white lego HSV range
+#	lower HSV: (0,0,209)
+#	upper HSV: (180,39,162)
 	
 	#cv.line(image, start_point, end_point, color, thickness)
 	cv.line(frame, (left_bar,0), (left_bar,640), (0, 255, 0), 3) #left test line
@@ -105,7 +164,7 @@ while True:
 	elif (not right_aligned and not left_aligned) == 1: #spin robot clockwise if no sides aligned
 		motorCommand = 'C'
 	#end serial command if statements
-	ser.write(motorCommand.encode('ascii'))
+	#ser.write(motorCommand.encode('ascii'))
 	
 	cv.imshow("Frame", frame)#both of these display capture windows
 	cv.imshow("Mask", mask)
